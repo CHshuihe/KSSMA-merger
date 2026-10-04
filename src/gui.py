@@ -23,38 +23,12 @@ from tkinter import filedialog, messagebox, ttk
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from merger import __version__                      # noqa: E402
+from paths import find_artifacts                     # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
-def _app_dir():
-    """返回"应用根目录"。
-
-    * 源码运行时 = merger/（src 的上级）
-    * PyInstaller 打包后 = exe 所在目录（artifacts 与 exe 同级分发）
-    """
-    if getattr(sys, "frozen", False):
-        return os.path.dirname(sys.executable)
-    return os.path.dirname(HERE)
-
-
-def _bundle_dir():
-    """只读资源目录（打包后是 _MEIPASS）。"""
-    if getattr(sys, "frozen", False):
-        return getattr(sys, "_MEIPASS", _app_dir())
-    return os.path.dirname(HERE)
-
-
-def find_artifacts():
-    """依次尝试：环境变量 → exe/源码同级 → 打包内资源。"""
-    env = os.environ.get("KSSMA_ARTIFACTS")
-    if env and os.path.isdir(env):
-        return env
-    for base in (_app_dir(), _bundle_dir()):
-        p = os.path.join(base, "artifacts")
-        if os.path.isdir(p):
-            return p
-    return os.path.join(_app_dir(), "artifacts")
+from paths import app_dir as _app_dir, bundle_dir as _bundle_dir, find_artifacts
 
 
 class App:
@@ -338,45 +312,37 @@ def selftest(argv=None):
     """
     argv = list(sys.argv[1:] if argv is None else argv)
     lines = []
+    art = find_artifacts()
 
     def say(m):
         lines.append(m)
-        if not getattr(sys, "frozen", False) or sys.stdout is not None:
-            try:
-                print(m, flush=True)
-            except Exception:                                # noqa: BLE001
-                pass
-
-    say("KSSMA Merger 自检 v%s" % __version__)
-    say("  frozen        : %s" % getattr(sys, "frozen", False))
-    say("  app_dir       : %s" % _app_dir())
-    say("  bundle(_MEIPASS): %s" % _bundle_dir())
-    art = find_artifacts()
-    say("  artifacts     : %s（存在: %s）" % (art, os.path.isdir(art)))
-    if os.path.isdir(art):
-        n = sum(len(f) for _, _, f in os.walk(art))
-        sz = sum(os.path.getsize(os.path.join(r, f))
-                 for r, _, fs in os.walk(art) for f in fs)
-        say("                  %d 个文件 / %.1f MB" % (n, sz / 1048576))
-    ok = True
-    for mod in ("merger.apkbuild", "merger.signv2", "merger.validate",
-                "cryptography", "asn1crypto"):
         try:
-            __import__(mod)
-            say("  import %-18s OK" % mod)
-        except Exception as e:                                # noqa: BLE001
-            ok = False
-            say("  import %-18s 失败: %s" % (mod, e))
+            print(m, flush=True)
+        except Exception:                                # noqa: BLE001
+            pass
+
+    # 环境检查复用 CLI 那份实现（避免 GUI/CLI 两套逻辑再漂移）
+    _here = os.path.dirname(os.path.abspath(__file__))
+    if _here not in sys.path:
+        sys.path.insert(0, _here)
+    try:
+        from main import run_selftest as _env_check
+        ok = _env_check() == 0
+    except Exception as e:                                    # noqa: BLE001
+        ok = False
+        say("  环境检查失败: %s" % e)
+
+    # GUI 特有：顖外验一下 tkinter 能不能真开窗
     try:
         import tkinter as _tk
         r = _tk.Tk()
         r.withdraw()
         r.update()
         r.destroy()
-        say("  tkinter       OK")
+        say("  tkinter 窗口    OK")
     except Exception as e:                                    # noqa: BLE001
         ok = False
-        say("  tkinter       失败: %s" % e)
+        say("  tkinter 窗口    失败: %s" % e)
 
     if "--apk" in argv and "--res" in argv and "--out" in argv:
         apk = argv[argv.index("--apk") + 1]

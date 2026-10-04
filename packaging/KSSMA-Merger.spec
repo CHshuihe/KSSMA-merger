@@ -38,6 +38,7 @@ a = Analysis(
     binaries=[],
     datas=[(ART, "artifacts")],                  # 运行时 _MEIPASS/artifacts
     hiddenimports=[
+        "paths",
         "merger", "merger.apkbuild", "merger.patch", "merger.report",
         "merger.sign", "merger.signv2", "merger.validate", "merger.zipio",
         "cryptography", "cryptography.hazmat.primitives.asymmetric.padding",

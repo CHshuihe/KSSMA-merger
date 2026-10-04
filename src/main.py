@@ -25,21 +25,20 @@ REPO = os.path.dirname(HERE)          # merger/
 
 
 def default_artifacts_dir():
-    env = os.environ.get("KSSMA_ARTIFACTS")
-    if env:
-        return env
-    return os.path.join(REPO, "artifacts")
+    """修正数据目录（与 GUI 共用一份解析逻辑，见 src/paths.py）。"""
+    from paths import find_artifacts
+    return find_artifacts()
 
 
 def build_arg_parser():
     p = argparse.ArgumentParser(
         prog="KSSMA-Merger",
         description="把《扩散性百万亚瑟王》原版客户端离线化（本工具不含游戏本体）")
-    p.add_argument("--apk", required=True, metavar="PATH",
+    p.add_argument("--apk", metavar="PATH",
                    help="原版客户端 APK")
-    p.add_argument("--res", required=True, metavar="PATH",
+    p.add_argument("--res", metavar="PATH",
                    help="资源包 zip（140330 包）")
-    p.add_argument("--out", required=True, metavar="DIR",
+    p.add_argument("--out", metavar="DIR",
                    help="输出目录")
     p.add_argument("--artifacts", metavar="DIR", default=None,
                    help="修正数据目录（默认 ./artifacts 或环境变量 KSSMA_ARTIFACTS）")
@@ -50,17 +49,52 @@ def build_arg_parser():
     p.add_argument("--report", metavar="PATH", default=None,
                    help="写出自查报告 JSON（默认 <out>/merge-report.json）")
     p.add_argument("--quiet", action="store_true", help="只输出错误")
+    p.add_argument("--selftest", action="store_true",
+                   help="只检查运行环境与修正数据是否就位（不做合并）")
     p.add_argument("--version", action="version", version="KSSMA Merger %s" % __version__)
     return p
 
 
+def run_selftest():
+    """检查路径解析与依赖（打包后尤其有用）。"""
+    import paths
+    print("KSSMA Merger %s 环境自检" % __version__)
+    print("  frozen        : %s" % getattr(sys, "frozen", False))
+    print("  app_dir       : %s" % paths.app_dir())
+    print("  bundle_dir    : %s" % paths.bundle_dir())
+    art = paths.find_artifacts()
+    ok = os.path.isdir(art)
+    print("  artifacts     : %s（%s）" % (art, "存在" if ok else "**不存在**"))
+    if ok:
+        n = sum(len(f) for _, _, f in os.walk(art))
+        print("                   %d 个文件" % n)
+    for mod in ("merger.apkbuild", "merger.signv2", "cryptography", "asn1crypto"):
+        try:
+            __import__(mod)
+            print("  import %-16s OK" % mod)
+        except Exception as e:                              # noqa: BLE001
+            ok = False
+            print("  import %-16s 失败: %s" % (mod, e))
+    print()
+    print("结果：%s" % ("✅ 环境就绪" if ok else "❌ 有问题"))
+    return 0 if ok else 1
+
+
 def main(argv=None):
     args = build_arg_parser().parse_args(argv)
+    if args.selftest:
+        return run_selftest()
     quiet = args.quiet
 
     def log(msg):
         if not quiet:
             print(msg, flush=True)
+
+    # --selftest 之外必须给全三个路径
+    missing = [n for n, v in (("--apk", args.apk), ("--res", args.res), ("--out", args.out)) if not v]
+    if missing:
+        print("缺少参数：%s（用 --help 查看用法）" % " ".join(missing), file=sys.stderr)
+        return 2
 
     artifacts = args.artifacts or default_artifacts_dir()
     os.makedirs(args.out, exist_ok=True)
@@ -92,7 +126,8 @@ def main(argv=None):
         #   后续要接着做：用 apksigner 签一个小 APK，逐字节对比我们的
         #       Signing Block 与它的差异（重点：摘要分块、EOCD 的 cd_off 字段是否置 0、
         #       v2 signed data 的字段顺序）。
-        signer = make_signer(REPO, log, wants_v2=False)
+        from paths import app_dir
+        signer = make_signer(app_dir(), log, wants_v2=False)
 
     def on_step(title, _frac):
         log("[ ] %s" % title)

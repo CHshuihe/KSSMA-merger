@@ -1,0 +1,21 @@
+# 统一行尾：仓库内一律 LF，避免 Windows/Linux 之间反复产生"整文件改动"
+* text=auto eol=lf
+
+# 二进制文件不做行尾转换
+*.png binary
+*.jpg binary
+*.ico binary
+*.zip binary
+*.apk binary
+*.dex binary
+*.so binary
+*.mp4 binary
+*.bin binary
+*.p12 binary
+*.keystore binary
+
+# PowerShell 脚本保持 CRLF（Windows 上更稳）
+*.ps1 text eol=crlf
+
+# 中文文档按文本处理
+*.md text

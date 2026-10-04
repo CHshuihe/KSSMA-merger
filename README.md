@@ -116,6 +116,68 @@ pwsh -NoProfile -File packaging/Build-Exe.ps1
 
 ---
 
+## 修正数据（`artifacts/`）是什么、放哪里
+
+### 它是什么
+
+`artifacts/` 是**预编译好的修正数据**（约 105 MB），合并时被塞进你的 APK：
+
+| 内容 | 作用 |
+| --- | --- |
+| `classes2.dex` | 本地服务器（Java 编译成 dex）+ 启动注入 |
+| `classes-dex/classes.dex` | 修好的客户端启动类（全局偏移修正 + 新增字符串） |
+| `kssma-data/` | 卡牌 / 扭蛋 / 探索 / 商店等配置 + 登录应答模板 |
+| `kssma-data/op.mp4` | 高清 OP 动画（**可选**，101 MB，只有勾选「使用高清 OP」时才用） |
+| `database/` | 6 张二进制主数据表（卡牌、Boss、道具…） |
+| `seeds/` | 48 个补种资源（缺了会导致 native 崩溃） |
+| `patches/` | `.so` 与 `AndroidManifest.xml` 的**字节补丁**（在你的文件上原地打） |
+| `manifest/` | 改好的 `AndroidManifest.xml` |
+
+> 仓库里**不含** `artifacts/`（105 MB 二进制且含游戏数据）。
+> 请从 **GitHub Release** 下载；exe 发行包已经把它打包在里面了。
+
+### 用户需要放到哪里
+
+**正常情况什么都不用做。** 下载 exe 发行包后，`artifacts/` 已经在这里：
+
+```
+KSSMA-Merger/                  ← 解压出来的文件夹
+├─ KSSMA-Merger.exe
+└─ _internal/
+   └─ artifacts/               ← 就在这里，程序会自动找到
+```
+
+程序按下面的顺序找 `artifacts/`，**找到第一个就用**：
+
+| 顺序 | 位置 | 什么时候用得上 |
+| --- | --- | --- |
+| 1 | 环境变量 `KSSMA_ARTIFACTS` 指向的目录 | 想显式指定 |
+| 2 | **exe 同级**的 `KSSMA-Merger/artifacts/` | 想**覆盖**内置那份（例如自己重编过服务器） |
+| 3 | `KSSMA-Merger/_internal/artifacts/` | 发行包自带，**默认走这条** |
+| 4 | 源码树的 `merger/artifacts/` | 从源码运行 |
+
+所以：
+
+- **只想用** → 下载 exe 包，解压，双击，结束。
+- **想替换内置的** → 把新的 `artifacts/` 放到 **exe 同级**（第 2 条优先于内置）。
+- **不确定用的是哪个** → 跑自检，它会**打印实际路径**：
+
+```
+KSSMA-Merger.exe --selftest
+```
+
+```
+  app_dir       : …\KSSMA-Merger
+  bundle_dir    : …\KSSMA-Merger\_internal
+  artifacts     : …\KSSMA-Merger\_internal\artifacts（存在）
+                   71 个文件
+  结果：✅ 环境就绪
+```
+
+若显示"**不存在**"，它会打印**期望路径**，照那个位置放即可。
+
+---
+
 ## 常见问题
 
 **Q：合并后的 APK 能分发吗？**
