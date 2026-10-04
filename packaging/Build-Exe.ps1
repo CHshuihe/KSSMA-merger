@@ -49,8 +49,22 @@ Write-Host '  语法检查通过'
 if ($SkipExe) { Write-Host '（-SkipExe）跳过打包'; exit 0 }
 
 # 3) 清理旧产物
+#    先结束正在运行的旧 exe —— 否则 _internal 里的 dll 被占用，Remove-Item 会报
+#    "Access to the path '…\LIBBZ2.dll' is denied"（踩过）
+$running = Get-Process -Name 'KSSMA-Merger*' -ErrorAction SilentlyContinue
+if ($running) {
+    Write-Host "  结束正在运行的旧进程：$($running.Id -join ', ')"
+    $running | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 3
+}
 foreach ($p in @('build\KSSMA-Merger', 'dist\KSSMA-Merger')) {
-    if (Test-Path $p) { Remove-Item $p -Recurse -Force }
+    if (Test-Path $p) {
+        try {
+            Remove-Item $p -Recurse -Force -ErrorAction Stop
+        } catch {
+            throw "无法清理 $p：$($_.Exception.Message)`n请先关闭正在运行的本程序后重试。"
+        }
+    }
 }
 
 # 4) 打包
