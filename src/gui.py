@@ -224,16 +224,22 @@ class App:
                 f.write(b"ok")
             os.remove(probe)
         except PermissionError:
+            # 走到这里说明：目录能进、但**本程序**写不进去。
+            # 实测这类情况几乎都是安全软件按"程序"拦截大文件写入，
+            # 而不是目录权限问题（同一个目录用别的工具能正常写）。
+            good = self._suggest_out()
             return ("输出目录**不可写**：\n%s\n\n"
-                    "这通常不是权限设置问题，而是被安全软件拦下了。\n"
-                    "本程序会在这个目录里创建一个 900 MB 的 .apk 文件，"
-                    "部分杀毒软件的「勒索软件防护 / 受控文件夹访问」会阻止这种写入。\n\n"
-                    "请依次尝试：\n"
-                    "  1. 换成这个目录（实测可写）：%s\n"
-                    "  2. 在杀毒软件里把本程序加入白名单，或临时关闭"
-                    "「受控文件夹访问 / 勒索防护」\n"
-                    "  3. 确认该目录里的旧 APK 没有被其它程序（或播放器）占用\n"
-                    % (out, self._suggest_out()))
+                    "注意：这个目录本身通常是正常的（别的程序能写），\n"
+                    "被拦的是**本程序**往这里写约 900 MB 的 .apk 文件。\n"
+                    "常见原因是杀毒软件的「勒索软件防护 / 受控文件夹访问」。\n\n"
+                    "★ 最省事的做法：把输出目录改成下面这个（实测可写）\n"
+                    "    %s\n\n"
+                    "若你想继续用原目录，可以：\n"
+                    "  · 把本程序加入杀毒软件白名单，或临时关闭"
+                    "「受控文件夹访问 / 勒索防护」后重试；\n"
+                    "  · 确认该目录里的旧 .apk 没有被其它程序（播放器、压缩软件）占用。\n\n"
+                    "（提示：点「确定」后我会问你要不要直接切到上面那个可用目录）"
+                    % (out, good))
         except OSError as e:
             return "输出目录写入测试失败：\n%s\n\n%s" % (out, e)
 
@@ -280,6 +286,16 @@ class App:
         problem = self._check_out_dir(out)
         if problem:
             messagebox.showerror("输出目录不可用", problem)
+            # 若是"目录正常但本程序写不进去"（安全软件拦截），主动提议切换 ——
+            # 比让用户自己去别处找目录友好得多
+            if "不可写" in problem:
+                good = self._suggest_out()
+                if os.path.abspath(good) != out and messagebox.askyesno(
+                        "改用可写的目录？",
+                        "要把输出目录改成下面这个吗？\n\n%s\n\n"
+                        "（这是实测能正常写入的位置）" % good):
+                    self.out_var.set(good)
+                    self._say("输出目录已改为：%s（请再点一次「开始合并」）" % good)
             return
 
         self.start_btn.configure(state="disabled")
