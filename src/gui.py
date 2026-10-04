@@ -135,7 +135,23 @@ class App:
                 pass
             if self.res_var.get():
                 break
-        self.out_var.set(os.path.join(os.path.expanduser("~"), "KSSMA-Offline"))
+        # 默认输出目录：优先用**程序自己所在的文件夹**。
+        # 实测依据（2026-10 用户实机复现）：安全软件会拦截本程序"往非程序目录
+        # 写 900 MB 大文件"（输出到主目录 / %TEMP% / 任意其它目录都报
+        # Permission denied，即使该目录权限完全正常）；而输出到 exe 自身
+        # 文件夹可以正常写完 799.8 MB。故默认选它最省事。
+        exe_dir = _app_dir()
+        default_out = os.path.join(exe_dir, "output")
+        try:
+            os.makedirs(default_out, exist_ok=True)
+            probe = os.path.join(default_out, ".kssma-write-test")
+            with open(probe, "wb") as f:
+                f.write(b"ok")
+            os.remove(probe)
+            self.out_var.set(default_out)
+        except OSError:
+            # 程序目录不可写（例如装在 Program Files）→ 退回用户主目录
+            self.out_var.set(os.path.join(os.path.expanduser("~"), "KSSMA-Offline"))
 
     # ── 选择文件 ────────────────────────────────────
     def _pick_apk(self, _is_dir=False):
@@ -162,6 +178,21 @@ class App:
         self.log.see("end")
         self.log.configure(state="disabled")
 
+    # ── 推荐输出目录 ────────────────────────────────
+    @staticmethod
+    def _suggest_out():
+        """给一个**实测能写**的输出目录（程序自身文件夹优先）。"""
+        cand = os.path.join(_app_dir(), "output")
+        try:
+            os.makedirs(cand, exist_ok=True)
+            probe = os.path.join(cand, ".kssma-write-test")
+            with open(probe, "wb") as f:
+                f.write(b"ok")
+            os.remove(probe)
+            return cand
+        except OSError:
+            return os.path.join(os.path.expanduser("~"), "KSSMA-Offline")
+
     # ── 输出目录预检 ────────────────────────────────
     def _check_out_dir(self, out):
         """输出目录能不能真写进去？返回错误说明（None = 没问题）。
@@ -181,8 +212,8 @@ class App:
                     "  · 该位置需要管理员权限（如 C:\\ 根目录、Program Files）\n"
                     "  · 被杀毒软件 / 受控文件夹访问拦截（见下）\n"
                     "  · 目标在只读盘或网络盘上\n\n"
-                    "建议换成你自己的目录，例如：\n"
-                    "  %s" % (out, os.path.join(os.path.expanduser("~"), "KSSMA-Offline")))
+                    "建议换成这个目录（实测可写）：\n"
+                    "  %s" % (out, self._suggest_out()))
         except OSError as e:
             return "无法创建输出目录：\n%s\n\n%s" % (out, e)
 
@@ -198,11 +229,11 @@ class App:
                     "本程序会在这个目录里创建一个 900 MB 的 .apk 文件，"
                     "部分杀毒软件的「勒索软件防护 / 受控文件夹访问」会阻止这种写入。\n\n"
                     "请依次尝试：\n"
-                    "  1. 换一个目录（推荐：%s）—— 最省事\n"
+                    "  1. 换成这个目录（实测可写）：%s\n"
                     "  2. 在杀毒软件里把本程序加入白名单，或临时关闭"
                     "「受控文件夹访问 / 勒索防护」\n"
                     "  3. 确认该目录里的旧 APK 没有被其它程序（或播放器）占用\n"
-                    % (out, os.path.join(os.path.expanduser("~"), "KSSMA-Offline")))
+                    % (out, self._suggest_out()))
         except OSError as e:
             return "输出目录写入测试失败：\n%s\n\n%s" % (out, e)
 
@@ -312,10 +343,12 @@ class App:
                 err="写入被拒绝（可能被安全软件拦截）",
                 tb=("目标文件：%s\n\n"
                     "本程序会创建约 900 MB 的 .apk。若杀毒软件开启了\n"
-                    "「勒索软件防护 / 受控文件夹访问」，这类写入会被拦下（哪怕目录权限正常）。\n\n"
-                    "建议：换一个输出目录（例如 %s），或把本程序加入白名单后重试。\n\n"
-                    "原始错误：%s" % (e.filename or "(未知)", 
-                                     os.path.join(os.path.expanduser("~"), "KSSMA-Offline"), e)))
+                    "「勒索软件防护 / 受控文件夹访问」，这类写入会被拦下"
+                    "（哪怕目录权限完全正常）。\n\n"
+                    "建议把输出目录改成这个（实测可写）：\n  %s\n\n"
+                    "或者把本程序加入杀毒软件白名单后重试。\n\n"
+                    "原始错误：%s"
+                    % (e.filename or "(未知)", App._suggest_out(), e)))
         except OSError as e:
             put("fail", err="文件操作失败：%s" % e, tb="原始错误：%r" % (e,))
         except Exception as e:                                  # noqa: BLE001
