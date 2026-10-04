@@ -26,9 +26,13 @@
 如果你没有资源，你可以考虑通过从 [Internet Archive 的 gacha-archive](https://archive.org/details/gacha-archive) 下载以下两个文件。
 	```
 com.square_enix.million_cn-1.0.0.100.0712.M330.apk
+
 com.square_enix.million_cn-140330.zip
+
 两者SHA-256:
+
 4F6A854C49D1AF59BB5500828D2BDDA0767F4D6A9FCFA8D4D6E46EA9257C58A7  com.square_enix.million_cn-1.0.0.100.0712.M330.apk
+
 D311C8FC3152BE328FA36638F2075F01B95A8AAB2DEA47F918DB3101F18D69F5  com.square_enix.million_cn-140330.zip
 
 ```

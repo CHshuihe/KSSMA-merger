@@ -35,6 +35,10 @@ out/
 selftest-report.txt
 merge-report.json
 
+# 发布打包产物（zip 走 GitHub Release）
+# 发布说明模板在 packaging/RELEASE-NOTES.md（纯文本，入库）
+release/
+
 # 用户素材（原版 APK / 资源包 / 中间二进制）：绝不入库
 *.apk
 *.zip
