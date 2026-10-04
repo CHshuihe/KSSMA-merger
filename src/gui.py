@@ -162,6 +162,62 @@ class App:
         self.log.see("end")
         self.log.configure(state="disabled")
 
+    # ── 输出目录预检 ────────────────────────────────
+    def _check_out_dir(self, out):
+        """输出目录能不能真写进去？返回错误说明（None = 没问题）。
+
+        为什么必须预检：合并一次要写 900 MB，如果目录不可写（杀软拦截、
+        权限不足、选到了只读位置），用户会等很久才拿到一句 PermissionError。
+        常见成因见下面每条诊断的提示文本。
+        """
+        try:
+            if os.path.exists(out) and not os.path.isdir(out):
+                return ("这个路径是一个**文件**，不是目录：\n%s\n\n"
+                        "请选择一个目录（或换一个名字）。" % out)
+            os.makedirs(out, exist_ok=True)
+        except PermissionError:
+            return ("没有权限创建输出目录：\n%s\n\n"
+                    "常见原因：\n"
+                    "  · 该位置需要管理员权限（如 C:\\ 根目录、Program Files）\n"
+                    "  · 被杀毒软件 / 受控文件夹访问拦截（见下）\n"
+                    "  · 目标在只读盘或网络盘上\n\n"
+                    "建议换成你自己的目录，例如：\n"
+                    "  %s" % (out, os.path.join(os.path.expanduser("~"), "KSSMA-Offline")))
+        except OSError as e:
+            return "无法创建输出目录：\n%s\n\n%s" % (out, e)
+
+        # 真写一个测试文件（比 os.access 可靠：Windows 上 access 对目录不准）
+        probe = os.path.join(out, ".kssma-write-test")
+        try:
+            with open(probe, "wb") as f:
+                f.write(b"ok")
+            os.remove(probe)
+        except PermissionError:
+            return ("输出目录**不可写**：\n%s\n\n"
+                    "这通常不是权限设置问题，而是被安全软件拦下了。\n"
+                    "本程序会在这个目录里创建一个 900 MB 的 .apk 文件，"
+                    "部分杀毒软件的「勒索软件防护 / 受控文件夹访问」会阻止这种写入。\n\n"
+                    "请依次尝试：\n"
+                    "  1. 换一个目录（推荐：%s）—— 最省事\n"
+                    "  2. 在杀毒软件里把本程序加入白名单，或临时关闭"
+                    "「受控文件夹访问 / 勒索防护」\n"
+                    "  3. 确认该目录里的旧 APK 没有被其它程序（或播放器）占用\n"
+                    % (out, os.path.join(os.path.expanduser("~"), "KSSMA-Offline")))
+        except OSError as e:
+            return "输出目录写入测试失败：\n%s\n\n%s" % (out, e)
+
+        # 剩余空间（约需 1 GB）
+        try:
+            import shutil as _sh
+            free = _sh.disk_usage(out).free
+            if free < 1100 * 1024 * 1024:
+                return ("输出目录所在磁盘空间不足：\n%s\n\n"
+                        "剩余 %.1f GB，合并约需 1 GB。请清理后再试。"
+                        % (out, free / (1024 ** 3)))
+        except OSError:
+            pass
+        return None
+
     # ── 启动合并 ────────────────────────────────────
     def _start(self):
         apk = self.apk_var.get().strip()
@@ -183,6 +239,16 @@ class App:
                 "缺少修正数据",
                 "找不到 artifacts 目录：\n%s\n\n"
                 "请确认它与本程序放在同一目录下。" % artifacts)
+            return
+
+        # ★ 输出目录预检：在真正开始（要写 900 MB）之前就把问题说清楚。
+        #   之前没有这一步，用户要等合并跑起来才看到一句 PermissionError，
+        #   既不知道原因也不知道怎么办。
+        out = os.path.abspath(out)
+        self.out_var.set(out)
+        problem = self._check_out_dir(out)
+        if problem:
+            messagebox.showerror("输出目录不可用", problem)
             return
 
         self.start_btn.configure(state="disabled")
@@ -240,6 +306,18 @@ class App:
                          artifacts=artifacts, hi_op=hi_op, signed=sign)
             put("done", apk=out_apk, report=report, elapsed=time.time() - t0,
                 report_path=report_path)
+        except PermissionError as e:
+            # PermissionError 几乎总是“被拦”而非“没权限”，给可执行的建议
+            put("fail",
+                err="写入被拒绝（可能被安全软件拦截）",
+                tb=("目标文件：%s\n\n"
+                    "本程序会创建约 900 MB 的 .apk。若杀毒软件开启了\n"
+                    "「勒索软件防护 / 受控文件夹访问」，这类写入会被拦下（哪怕目录权限正常）。\n\n"
+                    "建议：换一个输出目录（例如 %s），或把本程序加入白名单后重试。\n\n"
+                    "原始错误：%s" % (e.filename or "(未知)", 
+                                     os.path.join(os.path.expanduser("~"), "KSSMA-Offline"), e)))
+        except OSError as e:
+            put("fail", err="文件操作失败：%s" % e, tb="原始错误：%r" % (e,))
         except Exception as e:                                  # noqa: BLE001
             import traceback
             put("fail", err=str(e), tb=traceback.format_exc())
@@ -380,8 +458,19 @@ def selftest(argv=None):
 
 
 def main():
+    # ── 参数分派 ────────────────────────────────
+    # 1) 自检
     if "--selftest" in sys.argv:
         return selftest()
+    # 2) 带合并参数时走命令行。
+    #    否则这些参数会被**静默忽略**，直接开 GUI 干等——
+    #    打包成 exe 后 `--apk … --res … --out …` 就是这样
+    #    “跑很久然后什么都没发生”。
+    if any(a in sys.argv for a in ("--apk", "--res", "--out", "--artifacts",
+                                   "--hi-op", "--no-sign", "--report", "--quiet")):
+        from main import main as cli_main
+        return cli_main()
+    # 3) 否则开图形界面
     root = tk.Tk()
     try:
         root.call("tk", "scaling", 1.2)
