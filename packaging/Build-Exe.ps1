@@ -75,6 +75,18 @@ if ($LASTEXITCODE -ne 0) { throw 'PyInstaller 失败' }
 # 5) 结果
 $exe = 'dist\KSSMA-Merger\KSSMA-Merger.exe'
 if (-not (Test-Path $exe)) { throw "未生成 $exe" }
+
+# 5b) 清掉发行包里不该有的东西
+#     dist\KSSMA-Merger\keystore\ 是开发时试运行生成的签名密钥；分发时删掉，
+#     用户首次运行会在自己那侧重新生成（每个用户独立密钥，互不冲突）。
+$ks = 'dist\KSSMA-Merger\keystore'
+if (Test-Path $ks) {
+    Remove-Item $ks -Recurse -Force
+    Write-Host '  已移除发行包内的 keystore（用户首次运行会重新生成）'
+}
+$outDir = 'dist\KSSMA-Merger\output'
+if (Test-Path $outDir) { Remove-Item $outDir -Recurse -Force }
+
 $exeMb = [math]::Round((Get-Item $exe).Length / 1MB, 2)
 $dirMb = [math]::Round(((Get-ChildItem 'dist\KSSMA-Merger' -Recurse -File |
         Measure-Object -Property Length -Sum).Sum / 1MB), 1)
