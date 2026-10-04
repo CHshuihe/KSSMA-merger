@@ -1,0 +1,55 @@
+# KSSMA Merger · 仓库忽略规则
+# ─────────────────────────────────────────
+# 原则：**只入库源码与文档**。
+# 游戏素材、修正数据、签名密钥、构建产物一律不进仓库。
+
+# 签名与凭据：绝不入库
+keystore/
+*.keystore
+*.jks
+*.p12
+*.pem
+keystore-info.txt
+*.pepk
+
+# 修正数据：105 MB（含游戏数据），走 GitHub Release 分发
+artifacts/
+artifacts.zip
+
+# 构建产物
+build/
+dist/
+*.spec.bak
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+
+# 运行期产物
+work/
+out/
+selftest-report.txt
+merge-report.json
+
+# 用户素材（原版 APK / 资源包 / 中间二进制）：绝不入库
+*.apk
+*.zip
+*.mp4
+*.dex
+*.so
+*.bin
+
+# 日志
+*.log
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+*.swp
+*~
+Thumbs.db
+desktop.ini

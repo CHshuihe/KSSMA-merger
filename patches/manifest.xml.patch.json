@@ -1,0 +1,216 @@
+{
+ "format": "kssma-binary-patch/1",
+ "label": "AndroidManifest GM component rename",
+ "from_sha256": "89859309830b995e5cca09dacc4b3b765f82071468a5811b1a9fcbb6f496da1b",
+ "to_sha256": "6606290528a25a561f93de262b2dbb25614e57cfdaf0cb14903a6daa6024f778",
+ "size": 5684,
+ "region_count": 41,
+ "changed_bytes": 41,
+ "regions": [
+  {
+   "offset": 2034,
+   "before": "29",
+   "after": "15"
+  },
+  {
+   "offset": 2036,
+   "before": "63",
+   "after": "6b"
+  },
+  {
+   "offset": 2038,
+   "before": "6f",
+   "after": "73"
+  },
+  {
+   "offset": 2040,
+   "before": "6d",
+   "after": "73"
+  },
+  {
+   "offset": 2042,
+   "before": "2e",
+   "after": "6d"
+  },
+  {
+   "offset": 2044,
+   "before": "73",
+   "after": "61"
+  },
+  {
+   "offset": 2046,
+   "before": "68",
+   "after": "2e"
+  },
+  {
+   "offset": 2048,
+   "before": "61",
+   "after": "62"
+  },
+  {
+   "offset": 2050,
+   "before": "6e",
+   "after": "6f"
+  },
+  {
+   "offset": 2052,
+   "before": "64",
+   "after": "6f"
+  },
+  {
+   "offset": 2054,
+   "before": "61",
+   "after": "74"
+  },
+  {
+   "offset": 2056,
+   "before": "67",
+   "after": "2e"
+  },
+  {
+   "offset": 2058,
+   "before": "61",
+   "after": "47"
+  },
+  {
+   "offset": 2062,
+   "before": "65",
+   "after": "41"
+  },
+  {
+   "offset": 2064,
+   "before": "73",
+   "after": "63"
+  },
+  {
+   "offset": 2066,
+   "before": "2e",
+   "after": "74"
+  },
+  {
+   "offset": 2068,
+   "before": "67",
+   "after": "69"
+  },
+  {
+   "offset": 2070,
+   "before": "61",
+   "after": "76"
+  },
+  {
+   "offset": 2072,
+   "before": "6d",
+   "after": "69"
+  },
+  {
+   "offset": 2074,
+   "before": "65",
+   "after": "74"
+  },
+  {
+   "offset": 2076,
+   "before": "70",
+   "after": "79"
+  },
+  {
+   "offset": 2078,
+   "before": "6c",
+   "after": "00"
+  },
+  {
+   "offset": 2080,
+   "before": "75",
+   "after": "00"
+  },
+  {
+   "offset": 2082,
+   "before": "73",
+   "after": "00"
+  },
+  {
+   "offset": 2084,
+   "before": "2e",
+   "after": "00"
+  },
+  {
+   "offset": 2086,
+   "before": "69",
+   "after": "00"
+  },
+  {
+   "offset": 2088,
+   "before": "6d",
+   "after": "00"
+  },
+  {
+   "offset": 2090,
+   "before": "70",
+   "after": "00"
+  },
+  {
+   "offset": 2092,
+   "before": "6c",
+   "after": "00"
+  },
+  {
+   "offset": 2094,
+   "before": "2e",
+   "after": "00"
+  },
+  {
+   "offset": 2096,
+   "before": "50",
+   "after": "00"
+  },
+  {
+   "offset": 2098,
+   "before": "61",
+   "after": "00"
+  },
+  {
+   "offset": 2100,
+   "before": "79",
+   "after": "00"
+  },
+  {
+   "offset": 2102,
+   "before": "41",
+   "after": "00"
+  },
+  {
+   "offset": 2104,
+   "before": "63",
+   "after": "00"
+  },
+  {
+   "offset": 2106,
+   "before": "74",
+   "after": "00"
+  },
+  {
+   "offset": 2108,
+   "before": "69",
+   "after": "00"
+  },
+  {
+   "offset": 2110,
+   "before": "76",
+   "after": "00"
+  },
+  {
+   "offset": 2112,
+   "before": "69",
+   "after": "00"
+  },
+  {
+   "offset": 2114,
+   "before": "74",
+   "after": "00"
+  },
+  {
+   "offset": 2116,
+   "before": "79",
+   "after": "00"
+  }
+ ]
+}
