@@ -55,6 +55,14 @@ RES_ZIP_REQUIRED = [
 ]
 
 
+# appdata 载荷（**M23 关键，不能跳过**）：客户端启动时用它判断"本地卡表是否可用"。
+# 一旦缺它或它全零，客户端在 GLRenderer.nativeInitialize 里会**删除**
+# save/database/master_card，且不会重新下载 → 引擎卡表为空 → 图鉴等卡牌页
+# _Card::getCountryId() 读 NULL+8 直接 SIGSEGV（MuMu 实测必崩）。
+RES_ZIP_APPDATA = "appdata/save_appdata"
+RES_ZIP_SAVE_VERSION = "appdata/save_version"
+
+
 class ValidationError(Exception):
     """校验失败（带人话说明）。"""
 
@@ -130,10 +138,12 @@ def validate_resource_zip(path, deep=False, progress=None, strict_hash=True):
         infos = z.infolist()
     names = [i.filename for i in infos]
 
-    payload = [n for n in names if n.startswith(RES_ZIP_ROOT) and not n.endswith("/")]
+    root = RES_ZIP_ROOT
+    payload = [n for n in names if n.startswith(root) and not n.endswith("/")]
     if len(payload) < RES_ZIP_MIN_FILES:
         # 兼容：也可能用户给的是"已剥掉 sdcard 前缀"的变体
         alt_root = "Android/data/com.square_enix.million_cn/files/save/"
+        root = alt_root
         payload = [n for n in names if n.startswith(alt_root) and not n.endswith("/")]
         if len(payload) < RES_ZIP_MIN_FILES:
             raise ValidationError(
@@ -156,6 +166,28 @@ def validate_resource_zip(path, deep=False, progress=None, strict_hash=True):
             + "\n  ".join(missing))
 
     info = {"entries": len(names), "payload": len(payload)}
+
+    # ★ appdata 硬门禁（M23）：资源包里必须有非全零的 appdata/save_appdata。
+    #   这不是"可选资源"——缺了它客户端会删掉卡表，之后卡牌相关页面必崩。
+    appdata_name = root + RES_ZIP_APPDATA
+    if appdata_name not in names:
+        raise ValidationError(
+            "资源包缺少 appdata 载荷：%s\n"
+            "  这个文件是客户端判断本地卡表是否可用的依据，缺了它客户端会删掉\n"
+            "  save/database/master_card → 引擎卡表为空 → 图鉴等卡牌页面 native 崩溃。\n"
+            "  请使用配套的 140330 资源包。" % appdata_name)
+    with zipfile.ZipFile(path) as z:
+        blob = z.read(appdata_name)
+    if not any(b != 0 for b in blob):
+        raise ValidationError(
+            "资源包里的 appdata 载荷**全为零**（%d 字节）：%s\n"
+            "  全零 appdata 同样会让客户端删掉 save/database/master_card。\n"
+            "  请使用配套的 140330 资源包（其 save_appdata 有 %d 个非零字节）。"
+            % (len(blob), appdata_name, 118))
+    info["appdata_bytes"] = len(blob)
+    info["appdata_nonzero"] = sum(1 for b in blob if b != 0)
+    if (root + RES_ZIP_SAVE_VERSION) not in names:
+        info["save_version"] = "missing"
     if strict_hash or deep:
         digest = sha256_file(path, progress)
         info["sha256"] = digest

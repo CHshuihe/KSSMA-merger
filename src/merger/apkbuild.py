@@ -221,13 +221,25 @@ class Merger:
 
         # 4) assets/save/（从资源包搬运；原样复制，不重压）
         root = validate.RES_ZIP_ROOT
+        appdata_written = False
         for e in res.entries:
             if e.is_dir or not e.name.startswith(root):
                 continue
             rel = e.name[len(root):]
-            if not rel or rel.startswith("appdata/"):
-                continue                     # 跳过 2014 旧存档载荷
+            if not rel:
+                continue
+            # ★ appdata/ 必须随包发（M23 实证，别再跳过）：
+            #   资源包里这份 save_appdata / save_version 是**非零原版**
+            #   （save_appdata 2849 B / 118 非零字节，与主 dist 包同一份，sha256 59c228bf…）。
+            #   以前这里 `rel.startswith("appdata/")` 直接跳过，后果是合成器打出的包：
+            #     ①客户端 nativeInitialize 读到全零/缺失的 appdata
+            #       → 删掉 save/database/master_card（设备日志：削除しました:…/master_card）
+            #     ②引擎卡表为空 → 图鉴 _Card::getCountryId() 读 NULL+8 → SIGSEGV（MuMu 实测必崩）
+            #     ③KssmaBoot.healZeroSaveAppdata 依赖 assets/save/appdata/save_appdata 自愈，
+            #       缺这个 asset 时只能打 "save_appdata heal skipped: asset missing"。
             name = "assets/save/" + rel
+            if rel == "appdata/save_appdata":
+                appdata_written = True
             m = method_for(name)
             if m == e.method:
                 w.add(WriteEntry(name, CopySource(res, e), m, e.date_time,
@@ -237,5 +249,12 @@ class Merger:
                 w.add(WriteEntry(name, BytesSource(res.read(e.name), m), m,
                                  e.date_time, e.external_attr))
             added += 1
+
+        if not appdata_written:
+            raise RuntimeError(
+                "内部错误：assets/save/appdata/save_appdata 没有写进包里。\n"
+                "  它是客户端判断本地卡表是否可用的依据：缺了客户端会删掉 "
+                "save/database/master_card，\n"
+                "  引擎卡表为空 → 图鉴等卡牌页面 _Card::getCountryId() 读 NULL+8 崩溃（M23 实证）。")
 
         return added

@@ -17,7 +17,7 @@
       META-INF/                    —— 签名，合并器自己生成
       assets/database/             —— 由 artifacts/database 提供
       assets/kssma-data/           —— 由 artifacts/kssma-data 提供
-      assets/save/appdata/         —— 2014 全零旧存档，**故意不写**
+      assets/save/appdata/         —— 由资源包直接搬运（**必须带**，见 apkbuild/validate 的 M23 门禁）
       classes2.dex                 —— 由 artifacts/classes2.dex 提供
       assets/kssma-data/op.mp4     —— 可选高清 OP，由 --hi-op 控制
 
