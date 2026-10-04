@@ -12,6 +12,22 @@
 
 ---
 
+## 本版修复（2026-10-04 · M23）**建议务必更新**
+
+旧版合并器会**漏发** `assets/save/appdata/save_appdata`：客户端启动时读不到有效的
+appdata，就会删掉 `save/database/master_card` 并**不再重新下载** → 引擎卡表为空 →
+进入**图鉴**时 `_CardCollection::setupCardTable → createFaceCard → _Card::getCountryId()`
+对 NULL 取成员 → 必崩（`SIGSEGV fault addr 0x8`）。
+
+- 受影响：**仅合并器产出的包**（旧版 `KSSMA-Merger-*-win64.zip` / 旧 exe）；
+  走主构建流程（Android SDK + `apksigner`）出的包不受影响。
+- 修复：合并器不再跳过 `appdata/`；资源包缺该文件或它全零时**直接拒绝打包**。
+- 自查：合并产物里应存在 `assets/save/appdata/save_appdata`（2849 字节 / **118 个非零字节**）。
+  直接对产物 SHA256 更省事 —— 用同一原版 APK + 140330 资源包 + 勾选高清 OP，
+  正确产物是 `70bcd135f28aefbe52aa1fd138f87b967121388b52e8a6452b2c38135d9a3347`（945,274,027 B）。
+
+---
+
 ## 怎么用
 
 1. **解压** `KSSMA-Merger-<日期>-win64.zip` → 得到 `KSSMA-Merger\` 文件夹
@@ -68,14 +84,14 @@ KSSMA-Merger.exe --selftest
 ## 校验
 
 ```
-4C403B149CC29DEDC010D26A90F46E54D1D9DAA6F512C06BE9AD9156323309DF  KSSMA-Merger-20261004-win64.zip
+6EF971CAF36E85830FA7CD575F5EAB50F852D45B3990AF0CB60404D643623255  KSSMA-Merger-20261004b-win64.zip
 8EF55FA3D27324F4FB512D9DF24C64F2475B45A45FC612DE4DB3BC10A89CE04B  artifacts-20261004.zip
 ```
 
 PowerShell 校验：
 
 ```powershell
-Get-FileHash .\KSSMA-Merger-20261004-win64.zip -Algorithm SHA256
+Get-FileHash .\KSSMA-Merger-20261004b-win64.zip -Algorithm SHA256
 ```
 
 ---
