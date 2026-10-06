@@ -441,6 +441,14 @@ def selftest(argv=None):
     lines = []
     art = find_artifacts()
 
+    # 结果里带 ✅/❌；中文 Windows 控制台是 GBK，直接 print 会抛
+    # UnicodeEncodeError 把整个自检带崩（曾表现为"环境检查失败: 'gbk' codec…"）。
+    # 调成容错模式：编不出的字符降级成 '?'，而不是失败。
+    try:
+        sys.stdout.reconfigure(errors="replace")
+    except Exception:                                    # noqa: BLE001
+        pass
+
     def say(m):
         lines.append(m)
         try:
@@ -454,7 +462,9 @@ def selftest(argv=None):
         sys.path.insert(0, _here)
     try:
         from main import run_selftest as _env_check
-        ok = _env_check() == 0
+        # 把 CLI 那份环境检查的每一行都收进 lines（否则 selftest-report.txt 只有
+        # tkinter 一行；windowed 版没有控制台时用户等于什么都看不到）
+        ok = _env_check(say) == 0
     except Exception as e:                                    # noqa: BLE001
         ok = False
         say("  环境检查失败: %s" % e)

@@ -55,28 +55,49 @@ def build_arg_parser():
     return p
 
 
-def run_selftest():
-    """检查路径解析与依赖（打包后尤其有用）。"""
+def _emit(msg):
+    """安全打印：windowed 版没有控制台（`sys.stdout` 为 None）、
+    GBK 控制台编码不了 `✅/❌` 时，都**不应**让自检假失败。"""
+    try:
+        print(msg, flush=True)
+    except Exception:                                    # noqa: BLE001
+        pass
+
+
+def run_selftest(emit=None):
+    """检查路径解析与依赖（打包后尤其有用）。
+
+    emit : 可选的输出回调（GUI 自检用它把内容同时收进 `selftest-report.txt`）；
+           默认写 stdout，并对"无控制台 / 编码不支持"完全容错。
+    """
     import paths
-    print("KSSMA Merger %s 环境自检" % __version__)
-    print("  frozen        : %s" % getattr(sys, "frozen", False))
-    print("  app_dir       : %s" % paths.app_dir())
-    print("  bundle_dir    : %s" % paths.bundle_dir())
+    out = emit or _emit
+    # 结果行含 ✅/❌；中文 Windows 控制台是 GBK，直接 print 会抛 UnicodeEncodeError
+    # 把自检整个带崩（曾表现为"环境检查失败: 'gbk' codec…"）。调成容错模式，
+    # 编不出的字符降级成 '?'，而不是失败。
+    try:
+        sys.stdout.reconfigure(errors="replace")
+    except Exception:                                    # noqa: BLE001
+        pass
+    out("KSSMA Merger %s 环境自检" % __version__)
+    out("  frozen        : %s" % getattr(sys, "frozen", False))
+    out("  app_dir       : %s" % paths.app_dir())
+    out("  bundle_dir    : %s" % paths.bundle_dir())
     art = paths.find_artifacts()
     ok = os.path.isdir(art)
-    print("  artifacts     : %s（%s）" % (art, "存在" if ok else "**不存在**"))
+    out("  artifacts     : %s（%s）" % (art, "存在" if ok else "**不存在**"))
     if ok:
         n = sum(len(f) for _, _, f in os.walk(art))
-        print("                   %d 个文件" % n)
+        out("                   %d 个文件" % n)
     for mod in ("merger.apkbuild", "merger.signv2", "cryptography", "asn1crypto"):
         try:
             __import__(mod)
-            print("  import %-16s OK" % mod)
+            out("  import %-16s OK" % mod)
         except Exception as e:                              # noqa: BLE001
             ok = False
-            print("  import %-16s 失败: %s" % (mod, e))
-    print()
-    print("结果：%s" % ("✅ 环境就绪" if ok else "❌ 有问题"))
+            out("  import %-16s 失败: %s" % (mod, e))
+    out("")
+    out("结果：%s" % ("✅ 环境就绪" if ok else "❌ 有问题"))
     return 0 if ok else 1
 
 

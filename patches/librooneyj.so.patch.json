@@ -1,11 +1,11 @@
 {
  "format": "kssma-binary-patch/1",
- "label": "librooneyj 4 native patches",
+ "label": "librooneyj native patches（含 rarity7 详情面板修复）",
  "from_sha256": "e0c4b63bbc732c3c927c1a7d325d889ee2af8499c3266237eefd390177c0f543",
- "to_sha256": "36a4826bd42bcf203b51d0344af5a1b479b961bd26ddb4685dd01a8b325b69a2",
+ "to_sha256": "e410d84589e79de193f18c634adfeef76e761ebfbb1e58d4b5c62a0368e8a642",
  "size": 4476928,
- "region_count": 54,
- "changed_bytes": 426,
+ "region_count": 56,
+ "changed_bytes": 442,
  "regions": [
   {
    "offset": 1850280,
@@ -276,6 +276,16 @@
    "offset": 4095927,
    "before": "0000000000000000000000000000000000000000000000000000000000000000000000",
    "after": "2b06d0186845f6f471c0f201010ef6c4fc08f10803cdf8083142a8daf503ffdbf5eabd"
+  },
+  {
+   "offset": 2256280,
+   "before": "0020002b00d01868c5f768f801300023211c09900b220ca8",
+   "after": "1868c5f76bf801300728c8bf07200023214609900b220ca8"
+  },
+  {
+   "offset": 2256356,
+   "before": "0023",
+   "after": "2623"
   }
  ]
 }

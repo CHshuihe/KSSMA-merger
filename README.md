@@ -21,7 +21,7 @@
 骑士对战（人机）、排行榜、玩家情报、新手教程等。
 
 
-##资源指引
+## 资源指引
 
 如果你没有资源，你可以考虑通过从 [Internet Archive 的 gacha-archive](https://archive.org/details/gacha-archive) 下载以下两个文件。
 	```
@@ -35,9 +35,9 @@ com.square_enix.million_cn-140330.zip
 
 D311C8FC3152BE328FA36638F2075F01B95A8AAB2DEA47F918DB3101F18D69F5  com.square_enix.million_cn-140330.zip
 
-```
 
----
+
+
 
 ## 你需要什么
 
@@ -55,13 +55,13 @@ D311C8FC3152BE328FA36638F2075F01B95A8AAB2DEA47F918DB3101F18D69F5  com.square_eni
 > **安装提示**：输出 APK 有 900 MB，请用 USB 传输，别用浏览器下载再传
 > （部分浏览器/网盘对大文件不友好）。设备上至少留 2 GB 空间。
 
----
+
 
 ## 怎么用
 
 ### 图形界面（推荐）
 
-```
+
 1. 下载并解压 KSSMA-Merger 文件夹
 2. 双击文件夹里的 KSSMA-Merger.exe
    （首次启动会自动填好 Downloads 里的原版 APK / 资源包，如果有的话）
@@ -71,7 +71,7 @@ D311C8FC3152BE328FA36638F2075F01B95A8AAB2DEA47F918DB3101F18D69F5  com.square_eni
 6. 完成后点「打开输出目录」，用 adb 安装产物：
        adb install -r KSSMA-Offline-<时间戳>.apk
 7.如果你用的是mumu模拟器，请在mumu模拟器中，**新建设备**，安卓版本选择**安卓12**，启动后，把apk拖进模拟器安装即可。
-```
+
 
 > **exe 必须在它的文件夹里运行**，不能单独拷出去——依赖与 105 MB 修正数据都在
 > 同目录的 `_internal\` 下。分发时请把**整个文件夹**打包。

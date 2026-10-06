@@ -26,8 +26,9 @@ BASE_APK_REQUIRED = [
 
 # 修正后的指纹（用于确认补丁打对了）
 PATCHED = {
+    # 原 4 个 native 补丁 → 36a4826b…；M24 rarity7 修复（首版漏掉 getRarity 调用，M24b 已修正）→ e410d845…
     "lib/armeabi/librooneyj.so":
-        "36a4826bd42bcf203b51d0344af5a1b479b961bd26ddb4685dd01a8b325b69a2",
+        "e410d84589e79de193f18c634adfeef76e761ebfbb1e58d4b5c62a0368e8a642",
     "AndroidManifest.xml":
         "6606290528a25a561f93de262b2dbb25614e57cfdaf0cb14903a6daa6024f778",
     "classes.dex":
